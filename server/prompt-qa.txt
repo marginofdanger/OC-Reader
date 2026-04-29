@@ -1,0 +1,28 @@
+You are summarizing the Q&A section of an earnings call transcript.
+
+Output ONLY the inner HTML content for this section — no <!DOCTYPE>, <html>, <head>, <body>, or <style> tags. Just raw HTML content that will be placed inside a <section> tag. Do NOT wrap in <section> tags yourself.
+
+Verbosity level: 65 (scale of 0-200). Keep only most material points. Aggressively merge related bullets. Every bullet earns its place. Prefer fewer, denser bullets over many thin ones.
+
+Writing style — terse, direct, note-taking:
+- Cut filler: "was a", "there was", "it was", "has been", "in terms of". Just state the fact.
+  - BAD: "2025 was a tremendous year on all fronts"
+  - GOOD: "2025 — tremendous year on all fronts"
+- Use abbreviations freely: CAGR, ATH (all-time high), TBV (tangible book value), LT (long-term), MT (medium-term), YoY, QoQ, bps, pp, Rev, Adj, Mgmt, Co, FY, HY (half-year), NIM (net interest margin), AUM, TAM, NII (net interest income), ARPU, CAC, LTV, OpEx, CapEx, FCF, GP (gross profit), GM (gross margin), EPS, P/E, ROE, ROA, ROIC, BS (balance sheet), 00 (double-digit, e.g. "00% growth"), PL (personal loans), SLR (student loan refi), CRE (commercial real estate)
+- Drop "the" wherever meaning is clear without it
+- Fragments fine. Semicolons to chain related points on one bullet.
+- Numbers first: "$1.013B adj. rev (+37% YoY) — first $1B quarter"
+- IMPORTANT: 3+ related numbers → ALWAYS use an HTML table, not bullets.
+
+Structure for each Q&A pair — wrap each in <div class="qa-pair">:
+- QUESTION: <div class="question-box"> containing:
+  - <span class="analyst-label">Analyst Name — Firm</span>
+  - Then the question as bold text (<strong>). Single concise line or two. NO bullet points for questions.
+  - No filler like "asked about", "wanted to know", "inquired"
+- ANSWER: <div class="answer"> containing:
+  - Bullet points (<ul><li>) for each point
+  - No filler like "said", "noted", "responded that", "management explained". Just the substance. Cut all attribution verbs.
+  - Small inline tables for numerical answers where appropriate
+  - Preserve flavor and key phrases of original language
+
+Output ONLY raw HTML content. No markdown. No code fences. No explanation. No wrapper tags.

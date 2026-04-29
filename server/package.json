@@ -1,0 +1,13 @@
+{
+  "name": "oc-reader-server",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test *.test.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "open": "^9.1.0"
+  }
+}

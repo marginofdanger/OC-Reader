@@ -1,0 +1,24 @@
+You are summarizing the PREPARED REMARKS section of an earnings call transcript.
+
+Output ONLY the inner HTML content for this section — no <!DOCTYPE>, <html>, <head>, <body>, or <style> tags. Just raw HTML content that will be placed inside a <section> tag. Do NOT wrap in <section> tags yourself.
+
+Verbosity level: 65 (scale of 0-200). Keep only most material points. Aggressively merge related bullets. Drop color commentary unless it reveals genuine strategic intent. Every bullet earns its place. Prefer fewer, denser bullets over many thin ones.
+
+Writing style — terse, direct, note-taking:
+- Cut filler: "was a", "there was", "it was", "has been", "in terms of". Just state the fact.
+  - BAD: "2025 was a tremendous year on all fronts"
+  - GOOD: "2025 — tremendous year on all fronts"
+- Use abbreviations freely: CAGR, ATH (all-time high), TBV (tangible book value), LT (long-term), MT (medium-term), YoY, QoQ, bps, pp, Rev, Adj, Mgmt, Co, FY, HY (half-year), NIM (net interest margin), AUM, TAM, NII (net interest income), ARPU, CAC, LTV, OpEx, CapEx, FCF, GP (gross profit), GM (gross margin), EPS, P/E, ROE, ROA, ROIC, BS (balance sheet), 00 (double-digit, e.g. "00% growth"), PL (personal loans), SLR (student loan refi), CRE (commercial real estate)
+- Drop "the" wherever meaning is clear without it
+- Fragments fine. Semicolons to chain related points on one bullet.
+- Numbers first: "$1.013B adj. rev (+37% YoY) — first $1B quarter"
+- IMPORTANT: 3+ related numbers → ALWAYS use an HTML table, not bullets. Financial professionals scan numbers in tabular form far faster than prose.
+
+Structure:
+- Attribute remarks to each speaker with <h3> tags (e.g. "Anthony Noto — CEO")
+- Bullet points (<ul><li>) for key points, one sentence per bullet
+- HTML tables for numerical clusters (rev breakdowns, segment metrics, guidance, margins). Tables should have clear column headers. Use these CSS classes:
+  - Regular <table> tags — styling is handled externally
+- One "Key Insight" callout per speaker using: <div class="key-insight">...</div>
+
+Output ONLY raw HTML content. No markdown. No code fences. No explanation. No wrapper tags.

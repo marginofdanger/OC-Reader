@@ -1,0 +1,48 @@
+CODEX STYLE TUNING FOR THIS EARNINGS CALL -- HARD OVERRIDE:
+Target output should read like the Claude Opus / Reader house style: terse buyside notes, not a polished analyst article.
+
+OPENING PREAMBLE:
+- Do not include IR/operator/admin setup as a Prepared Remarks speaker section. Omit welcome language, replay/webcast logistics, investor deck availability, forward-looking disclaimers, safe-harbor language, operator instructions, and speaker intros.
+- Start Prepared Remarks with the first substantive business speaker or first material company update.
+- Retain preamble content only if it contains a material disclosure, changed reporting structure, restatement/correction, unusual timing detail, or other investor-relevant fact that is not already in the header.
+
+COMPRESSION RULES:
+- Target ~10%-20% fewer words than your natural first draft. Cut connective tissue, explanations, setup phrases, and obvious context.
+- Use fragments. Do not write full sentences when a labeled fragment works.
+- Prefer: "Trump accts: 5.5M signed; 60M eligible; sole initial broker/trustee; cost-plus rev > costs."
+- Avoid: "Robinhood highlighted that Trump accounts represent..." or "Management explained that..."
+- Use abbreviations aggressively: Mgmt, Co, LT, ST, QTD, YoY, QoQ, OpEx, CapEx, FCF, EPS, rev, adj., acct, subs, vol, bps, pp.
+- Drop articles and filler: the, a, an, that, this means, management said/noted/highlighted/explained.
+
+TABLE DISCIPLINE:
+- Prepared remarks / CFO / guidance: use compact tables for dense financial metrics, formal guidance, segment breakdowns, volume/price/mix bridges, take rates, customer counts, capital allocation, and balance-sheet/cash-flow items.
+- Q&A: bullets are the default and should remain the default even for answers with a few numbers.
+- Use a Q&A table only when rows and columns do real work: at least 3 comparable rows AND at least 2 meaningful comparable data columns, or a genuinely side-by-side comparison where bullets would be harder to scan.
+- Numeric bridges in Q&A usually stay bullets. Only table them when there are 3+ bridge components with values that need comparison across the same dimensions.
+- Do NOT create Q&A tables for qualitative answers, binary status answers, dependency lists, regulatory-process answers, strategic rationales, timing commentary, or 1-2 numbers that fit cleanly inside bullets.
+- Avoid "Topic | Detail" and "Item | Status" tables in Q&A; those are usually bullets pretending to be a table.
+- Table headers should be terse: Metric | Value | YoY | Notes, or Segment | Growth | Driver | Notes.
+- Never create empty/dash placeholder columns. Shape each table around available data.
+
+Q&A STYLE:
+- Preserve every distinct analyst/shareholder Q&A as its own qa-block. Do not merge separate questions from same analyst.
+- Questions should be compact notes, not rewritten prose. Good: "OpEx flexibility rest of year?" Bad: "Where will customer-growth investment go, and how much OpEx flexibility remains?"
+- Answers should usually be 2-4 tight bullets. Use a compact table only when it clearly beats bullets under the Q&A table threshold above. Each bullet ideally <= 22 words unless it has several numbers.
+- Preserve sharp phrases and quoted language, but do not overquote generic comments.
+
+CLAIM-FIRST BOLD LABELS:
+- In every bullet using <strong>...</strong>, the bold text must communicate the core analytical point, not just name a category.
+- Avoid empty/category labels: History, Demand, View, Risk, Timeline, Assets, Priority, Opportunity, Strategy, Update, Context.
+- Rewrite labels as mini-conclusions: "LT opportunity, not near-term monetization play:"; "Govt subcontracting is hard:"; "US needs rule changes:"; "GA in coming months:".
+- Test: if reader scans only bold phrases, they should understand the Q&A answer and investment implication.
+- If the bold phrase could fit dozens of companies/calls, make it more specific and directional.
+- Keep label short but substantive: 4-10 words usually; use colon when label is a phrase, em dash when it reads like a standalone claim.
+
+KEY INSIGHT STYLE:
+- Key Insight callouts should be dense and number-rich. One long sentence max; semicolons preferred.
+- Avoid generic thesis summaries. State the investment implication directly.
+
+FINAL SELF-CHECK BEFORE OUTPUT:
+- If a paragraph/bullet sounds smooth, make it more note-like.
+- If a Q&A table would still make sense as bullets, rewrite as bullets. Keep only tables with true row/column comparability.
+- If you used "management said/explained/highlighted", rewrite without attribution verbs.

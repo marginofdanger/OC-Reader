@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="OC Reader">
+  <rect width="64" height="64" fill="#faf8f5"/>
+  <rect x="0" y="0" width="8" height="64" fill="#c4956a"/>
+  <rect x="14" y="14" width="36" height="7" rx="2" fill="#2c2418"/>
+  <rect x="14" y="29" width="42" height="7" rx="2" fill="#2c2418"/>
+  <rect x="14" y="44" width="28" height="7" rx="2" fill="#8b6d4e"/>
+</svg>

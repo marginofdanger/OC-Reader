@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "OC Reader",
+  "version": "1.0.0",
+  "description": "Extract transcripts from BamSEC, expert-call platforms, and YouTube, then process them through Claude or Codex CLI.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "alarms",
+    "storage",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "https://www.bamsec.com/*",
+    "http://localhost:3220/*",
+    "https://*.tegus.co/*",
+    "https://*.alphasense.com/*",
+    "https://*.alpha-sense.com/*",
+    "https://*.alphasights.com/*",
+    "https://www.youtube.com/*",
+    "https://m.youtube.com/*"
+  ],
+  "action": {
+    "default_title": "Summarize Transcript",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_popup": ""
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
+
+

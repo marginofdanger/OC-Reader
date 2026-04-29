@@ -1,0 +1,10 @@
+{
+  "ecVerbosity": 60,
+  "exVerbosity": 30,
+  "concurrency": 3,
+  "provider": "claude",
+  "youtubeProvider": "codex",
+  "model": "opus",
+  "codexModel": "gpt-5.5",
+  "shadowOpusForCodex": false
+}

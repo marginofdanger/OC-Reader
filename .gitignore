@@ -1,0 +1,7 @@
+output/
+server/node_modules/
+server/server.log
+server/settings.json
+server/claude_test_stderr.txt
+stderr.tmp
+.superpowers/

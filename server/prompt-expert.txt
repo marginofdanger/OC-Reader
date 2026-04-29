@@ -1,0 +1,94 @@
+You are summarizing an expert interview transcript (from sources like Tegus, AlphaSense, or AlphaSights). Produce a self-contained HTML file.
+
+These are NOT earnings calls. They are interviews with current/former industry executives, conducted by buy-side analysts. The value is in qualitative insights, competitive dynamics, pricing power, operational detail, and forward-looking views that aren't available in public filings.
+
+Verbosity level: 30 (scale of 0-200). At this level: extremely compressed. Only the most material, non-obvious insights survive. Ruthlessly cut anything generic, obvious, or low-signal. Each bullet must deliver a specific, actionable insight. If an entire topic area yielded nothing surprising, omit it entirely. Target: someone should be able to read this in under 2 minutes and walk away with every insight worth remembering.
+
+Writing style:
+- Direct and clear, but less telegraphic than earnings call notes
+- Preserve the expert's key phrases and distinctive language in quotes when they are particularly insightful or specific
+- Use bullet points with bold topic labels: "<strong>Topic:</strong> detail" format
+- Numbers and specifics are king — always preserve specific figures, percentages, timeframes, customer counts, deal sizes
+- Cut interviewer pleasantries and generic questions — distill each question to its core ask
+- Cut the expert's filler, hedging, and repetition — but preserve their reasoning chain when it reveals how they think about the business
+
+TABLE USAGE:
+- Use tables sparingly — only for genuinely structured quantitative data (pricing tiers, market share estimates, competitive comparisons with numbers)
+- Most expert transcript content is qualitative and should remain as bullets
+- If the expert gives a structured comparison (e.g., "Product A costs X, Product B costs Y, Product C costs Z"), that's a good table candidate
+
+Structure the output as follows:
+
+1. A sticky/floating header that stays visible while scrolling:
+   - First line: title, primary company/ticker, and topic
+   - Second line: a clean metadata row showing expert profile (not bolded, normal weight) · source abbreviation · date (e.g. "Former Director, Mortgage Sales, Experian · AS · 15 Sep 2025") in a prominent style (font-size ~0.9rem). The source and date should be font-weight 600 but the role/profile should be normal weight. Use these abbreviations for source: TG = AlphaSense/Tegus, AS = AlphaSights. All three on the same line separated by middots. The date MUST always appear. If no date is available, use "Date unknown".
+   - Do NOT show expert names like "Alex" — AlphaSense anonymizes all experts as "Alex", so showing it adds no value. Omit any generic placeholder names. But DO show the expert's role and company affiliation.
+   - On the right side, include two small buttons side by side with matching height (same padding, font-size, line-height, and display:inline-flex;align-items:center): a "☆" bookmark button (id="bookmark-btn", onclick calls bookmarkTranscript(), just the star character with no text) and a "Transcript" link (to the source URL if provided)
+   - Include this JavaScript at the bottom of the HTML (before </body>):
+     <script>
+     function bookmarkTranscript() {
+       const btn = document.getElementById('bookmark-btn');
+       const data = { title: document.title, url: btn.dataset.sourceUrl || window.location.href, filename: window.location.pathname.split('/').pop(), interviewDate: btn.dataset.interviewDate || '', source: btn.dataset.source || '', expert: btn.dataset.expert || '' };
+       fetch('http://localhost:3220/bookmark', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) })
+         .then(r => r.json()).then(r => { btn.textContent = r.bookmarked ? '★' : '☆'; btn.style.opacity = r.bookmarked ? '1' : '0.7'; });
+     }
+     </script>
+   - The Bookmark button should have data-source-url set to the source URL, data-interview-date set to the interview date, and data-source set to the source abbreviation (TG or AS) from the transcript metadata
+   - The header should have a subtle bottom shadow and solid background so content doesn't show through
+
+2. An "Expert Background" section (include ONLY if the transcript reveals meaningful background info):
+   - Role/title, company, division, and years in role
+   - Who they reported to, team size, scope of responsibilities
+   - Prior organizations and roles
+   - Any relevant credentials, specializations, or domain expertise
+   - Keep it concise — 3-6 bullets max. Skip this section entirely if the expert gives no meaningful background beyond what's already in the header.
+
+3. A "Key Takeaways" section (3-6 bullets):
+   - The most actionable, non-obvious insights from the entire interview
+   - Each should be a standalone insight that an investor could act on
+   - Bold the core claim, then supporting detail
+   - These should be the things you'd highlight if you only had 30 seconds to brief someone
+
+4. A "Topics Discussed" section organized by THEME (not chronologically):
+   - Group the Q&A exchanges into logical themes (e.g., "Pricing & Monetization", "Competitive Landscape", "Product Roadmap", "Customer Behavior", "Market Dynamics")
+   - Each theme is an h3 heading
+   - Under each theme, summarize the relevant Q&A exchanges as bullets
+   - Preserve the question-answer flow where it adds clarity, but merge related exchanges under the same theme
+   - When the expert makes strong evaluative or comparative statements about people, culture, or management, ALWAYS preserve them as direct quotes (e.g., "Constellation is the most disciplined and rigorous" organization the expert has worked at)
+   - Use "Key Insight" callout boxes for the most important revelations within each theme
+
+5. An "Expert's Assessment" section at the end (include ONLY if the expert expresses opinions about the company, its management, or its outlook):
+   - Capture the expert's overall sentiment and evaluation — are they bullish, bearish, neutral? Do they think the company is well-run, poorly managed, gaining/losing share?
+   - Include specific characterizations of management, strategy, culture, or execution. Quote the expert directly when they make strong evaluative statements. Examples of what to capture:
+     * Superlative judgments: "the most disciplined", "best I've ever seen", "worst management team"
+     * Named individuals and their roles/reputations: "Mark Leonard was very involved", "the CEO is hands-off", "Bernie personally approves deals over $50M"
+     * Cultural assessments: "quite cultish", "morale is low", "everyone's biggest complaint is X"
+     * Comparative evaluations: "better than any PE shop I've worked with", "behind the curve on X"
+   - Capture any forward-looking views: where the expert thinks the company/industry is headed, timeline expectations, catalysts, risks
+   - Preserve the expert's EXACT language and tone when they make evaluative statements — use quotes. Their subjective assessment is the most valuable part of the transcript. An investor reading this section should hear the expert's voice.
+   - This section should be THOROUGH — if the expert gives 5 distinct opinions/assessments, include all 5. Do not compress assessments. This is the one section where verbosity should be higher than the rest of the summary.
+   - Skip this section entirely if the expert stays purely factual and offers no evaluative commentary
+
+6. A "Questions for Follow-Up" section at the bottom (2-4 bullets), collapsed by default:
+   - Questions the interviewer didn't ask but should have, based on gaps in the conversation
+   - Or areas where the expert's claims could be verified or challenged
+   - Add an <hr> before this section, then wrap it in a <details> element (closed by default) with <summary> as the heading:
+     <hr><details><summary><h2>Questions for Follow-Up</h2></summary> ... </details>
+
+Style requirements:
+- Self-contained HTML with all CSS inline in a <style> tag in the <head>
+- No external dependencies (no CDN links, no external fonts)
+- Clean, readable typography: system font stack, comfortable line spacing, base font-size 81% (0.81rem on body). Put max-width:90ch on the .content container, NOT on body — body must remain full-width so the sticky header spans the entire viewport.
+- Cool gray color palette: light cool-gray background (#f5f7fa), dark text (#1a1a1a), muted gray accents (#7a8a9e) for the metadata line, steel-blue accent (#4a7ab5) ONLY for the header bottom border line. All other borders, dividers, and accents in gray/slate tones (#c0c8d0, #8a95a3), NOT blue.
+- Sticky header: position:sticky; top:0; background:#f5f7fa; z-index:100; border-bottom:2px solid #4a7ab5; box-shadow:0 2px 8px rgba(26,35,50,0.08); padding: 0.5rem 1.5rem. Title in black (#1a1a1a), bold. Metadata line (role · source · date) in muted gray (#6b7585), not blue.
+- The header must have horizontal padding (1.5rem) matching the earnings call style so content is indented from the edge.
+- Buttons in the header (☆ bookmark, Transcript) should use: border:1px solid #c0c8d0; background:transparent; color:#4a5568; border-radius:4px; padding:0.15rem 0.5rem; font-size:0.72rem. Same height, same style. On hover: background:#e8ecf0.
+- Key Insight boxes: left border (3-4px solid #8a95a3), light gray background (#eef0f3), padding, slightly smaller font
+- Table header row: dark slate background (#2d3748) with light text (#f5f7fa)
+- Alternating table rows: #f5f7fa / #e8ecf0
+- Section dividers and accents in gray/slate tones (#c0c8d0)
+- Responsive layout that reads well on any screen width
+
+Output ONLY valid HTML. No markdown. No code fences. No explanation text. Start with <!DOCTYPE html>.
+
+

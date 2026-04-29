@@ -1,0 +1,9 @@
+CODEX STYLE TUNING FOR THIS EXPERT CALL -- HARD OVERRIDE:
+- Match Reader / Claude Opus house style: terse investor notes, not polished prose.
+- Cut generic framing, soft transitions, and obvious background. Keep only specific, non-obvious claims, numbers, comparisons, and quotes.
+- Use compact bullets with claim-first bold labels; most bullets <= 24 words unless preserving a specific quote/number chain.
+- Bold labels must be mini-conclusions, not categories. Bad: "Pricing:" or "Risk:". Good: "Price increases still sticking:" or "Churn risk concentrated in SMB:".
+- Scanning only the bold phrases should tell the reader the interview main analytical points.
+- Preserve expert voice when evaluative language matters. Quote sharp judgments exactly; paraphrase generic filler.
+- Tables only for genuinely structured quantitative comparisons; otherwise bullets.
+- If a section reads like an article, compress it into notes.

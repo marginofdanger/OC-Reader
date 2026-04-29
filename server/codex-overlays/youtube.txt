@@ -1,0 +1,3 @@
+CODEX STYLE TUNING FOR THIS YOUTUBE TRANSCRIPT:
+- Preserve the near-verbatim cleanup contract. Do not summarize, analyze, or turn this into notes.
+- Obey the paragraph-only output contract exactly, including data-t attributes.
