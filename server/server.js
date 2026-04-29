@@ -323,8 +323,32 @@ async function processQueue() {
   }
 }
 
+function stripModelHtmlWrapper(html) {
+  let cleaned = String(html || '').trim();
+
+  // Models occasionally wrap the requested HTML in Markdown, e.g.
+  // "I'll generate..." followed by ```html. Keep only the document.
+  const firstDoctype = cleaned.search(/<!doctype\b/i);
+  const firstHtml = cleaned.search(/<html\b/i);
+  const starts = [firstDoctype, firstHtml].filter(i => i >= 0);
+  if (starts.length) {
+    cleaned = cleaned.slice(Math.min(...starts)).trimStart();
+  }
+
+  cleaned = cleaned.replace(/^```(?:html)?\s*/i, '');
+  cleaned = cleaned.replace(/\s*```\s*$/i, '');
+
+  const endHtml = cleaned.search(/<\/html\s*>/i);
+  if (endHtml >= 0) {
+    const close = cleaned.match(/<\/html\s*>/i);
+    cleaned = cleaned.slice(0, endHtml + close[0].length).trimEnd();
+  }
+
+  return cleaned;
+}
 
 function saveEarningsHtmlOutput(html, opts) {
+  html = stripModelHtmlWrapper(html);
   if (!html || (!html.includes('<!DOCTYPE') && !html.includes('<html'))) {
     throw new Error(`Empty or invalid HTML output (${html ? html.length : 0} chars). First 200: ${(html || '').slice(0, 200)}`);
   }
@@ -627,13 +651,14 @@ app.post('/summarize', async (req, res) => {
       const fullPrompt = `${promptTemplate}\n\n---\n\nTRANSCRIPT:\n\n${transcript}`;
 
       log(`Job ${jobId}: prompt size ${fullPrompt.length} chars`);
-      const html = await runProcessingPrompt(fullPrompt, {
+      let html = await runProcessingPrompt(fullPrompt, {
         provider: lockedProvider,
         model: lockedModel,
         jobId,
         timeoutMs: 300000,
       taskType: 'earnings',
       });
+      html = stripModelHtmlWrapper(html);
       // Validate output
       if (!html || (!html.includes('<!DOCTYPE') && !html.includes('<html'))) {
         throw new Error(`Empty or invalid HTML output (${html.length} chars). First 200: ${html.slice(0, 200)}`);
@@ -838,13 +863,14 @@ app.post('/summarize-expert', async (req, res) => {
       const fullPrompt = `${promptTemplate}\n\n---\n\nTRANSCRIPT:\n\n${fullTranscript}`;
 
       log(`Job ${jobId}: prompt size ${fullPrompt.length} chars`);
-      const html = await runProcessingPrompt(fullPrompt, {
+      let html = await runProcessingPrompt(fullPrompt, {
         provider: lockedProvider,
         model: lockedModel,
         jobId,
         timeoutMs: 300000,
       taskType: 'expert',
       });
+      html = stripModelHtmlWrapper(html);
       // Validate output
       if (!html || (!html.includes('<!DOCTYPE') && !html.includes('<html'))) {
         throw new Error(`Empty or invalid HTML output (${html.length} chars). First 200: ${html.slice(0, 200)}`);
