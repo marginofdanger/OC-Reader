@@ -575,9 +575,9 @@ ${completedJobs.length > 0 ? completedJobs.slice().reverse().map((j, i) => {
   }
   const link = j.filename ? `<a class="done-title" href="/output/${j.filename}" target="_blank">${title}</a>` : `<span class="done-title">${title}</span>`;
   const timeStr = j.date ? new Date(j.date).toLocaleDateString('en-US', {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
-  const hidden = i >= 30 ? ' style="display:none" class="' + cls + ' done-overflow"' : ' class="' + cls + '"';
+  const hidden = i >= 100 ? ' style="display:none" class="' + cls + ' done-overflow"' : ' class="' + cls + '"';
   return `<div${hidden}><div class="done-left">${link}${role ? `<div class="done-expert">${role}</div>` : ''}</div><div class="done-right time">${timeStr} · ${j.timeSeconds}s</div></div>`;
-}).join('') + (completedJobs.length > 30 ? `<div class="show-more" id="show-more-btn" onclick="document.querySelectorAll('.done-overflow').forEach(e=>e.style.display='');this.style.display='none'">Show ${completedJobs.length - 30} more...</div>` : '') : '<p class="empty">None yet</p>'}
+}).join('') + (completedJobs.length > 100 ? `<div class="show-more" id="show-more-btn" onclick="document.querySelectorAll('.done-overflow').forEach(e=>e.style.display='');this.style.display='none'">Show ${completedJobs.length - 100} more...</div>` : '') : '<p class="empty">None yet</p>'}
 </div>
 </div>
 <p class="time" style="margin-top:1rem;text-align:center">Auto-refreshes every 15s</p>
@@ -908,14 +908,85 @@ app.post('/summarize-expert', async (req, res) => {
       // Inject metadata into HTML head
       let finalHtml = html.replace('</head>', `<meta name="summarizer-verbosity" content="${verbosity}">\n<meta name="summarizer-model" content="${lockedTarget}">\n</head>`);
 
+      const expertActionCss = `
+  .header-buttons { display: flex; gap: 0.4rem; align-items: center; }
+  .header-buttons .btn,
+  .header-buttons button,
+  .header-buttons a {
+    height: 1.55rem;
+    min-height: 1.55rem;
+    padding: 0 0.55rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #c0c8d0;
+    border-radius: 4px;
+    background: transparent;
+    color: #4a5568;
+    font-size: 0.72rem;
+    font-family: inherit;
+    text-decoration: none;
+    cursor: pointer;
+  }
+`;
+      finalHtml = finalHtml.replace('</style>', `${expertActionCss}</style>`);
+
       // Inject bookmark data attributes server-side — strip any Claude-generated data-* attrs first to avoid duplicates
       finalHtml = finalHtml.replace(/(<(?:button|a)[^>]*id="bookmark-btn")[^>]*>/, (match, prefix) => {
         // Strip all existing data-* attributes
-        const cleaned = prefix.replace(/\s+data-[a-z-]+="[^"]*"/gi, '');
+        let cleaned = prefix.replace(/\s+data-[a-z-]+="[^"]*"/gi, '');
+        if (/\sclass=/.test(cleaned)) {
+          cleaned = cleaned.replace(/class=(["'])(.*?)\1/i, (m, quote, cls) => {
+            return cls.split(/\s+/).includes('btn') ? m : `class=${quote}${cls} btn${quote}`;
+          });
+        } else {
+          cleaned += ' class="btn"';
+        }
         // Re-add onclick if it was removed
         const hasOnclick = /onclick/.test(cleaned);
         return `${cleaned} data-source-url="${(sourceUrl || '').replace(/"/g, '&quot;')}" data-interview-date="${(interviewDate || '').replace(/"/g, '&quot;')}" data-source="${srcAbbrev}" data-expert="${(expertDesc || '').replace(/"/g, '&quot;')}"${hasOnclick ? '' : ' onclick="bookmarkTranscript()"'}>`;
       });
+
+      const shareBtn = `<button id="share-btn" class="btn" title="Share" aria-label="Share" data-filename="${filename.replace(/"/g, '&quot;')}" onclick="shareExpertPage(this)">&#8599;</button>`;
+      finalHtml = finalHtml.replace(
+        /(<button\b[^>]*id="bookmark-btn"[^>]*>[\s\S]*?<\/button>)/i,
+        `$1\n    ${shareBtn}`
+      );
+
+      const extraScript = `
+function shareExpertPage(btn) {
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '\\u2026';
+  fetch('http://localhost:3220/share', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ filename: btn.dataset.filename }) })
+    .then(r => r.json())
+    .then(j => {
+      if (!j.ok) throw new Error(j.error || 'Share failed');
+      try { navigator.clipboard.writeText(j.url); } catch(e) {}
+      btn.innerHTML = '\\u2713';
+      btn.title = 'Copied ' + j.url;
+      setTimeout(() => { btn.innerHTML = original; btn.disabled = false; btn.title = 'Share'; }, 2500);
+    })
+    .catch(e => {
+      console.error('Share failed:', e);
+      btn.innerHTML = '!';
+      btn.title = 'Share failed: ' + (e && e.message || e);
+      setTimeout(() => { btn.innerHTML = original; btn.disabled = false; btn.title = 'Share'; }, 3000);
+    });
+}
+(function hideLocalOnlyControls() {
+  const host = location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1' || host === '') return;
+  const actions = document.querySelector('.header-buttons');
+  if (!actions) return;
+  const bm = actions.querySelector('#bookmark-btn');
+  const sh = actions.querySelector('#share-btn');
+  if (bm) bm.remove();
+  if (sh) sh.remove();
+})();
+`;
+      finalHtml = finalHtml.replace('</script>', extraScript + '</script>');
 
       // Inject status link before closing </body>
       const statusLink = `\n<footer style="max-width:90ch;margin:2rem auto 1rem;padding-top:0.75rem;border-top:1px solid #e8e0d4;text-align:right;font-size:0.7rem"><a href="http://localhost:3220/status" style="color:#8b6d4e;text-decoration:none">Summarizer Status ↗</a></footer>\n`;
