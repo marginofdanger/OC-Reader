@@ -177,15 +177,21 @@ function marketStripHtml(snapshot) {
   if (!price || !ytd || !oneYear) return '';
   const ytdClass = Number(snapshot.ytdPct) >= 0 ? 'market-up' : 'market-down';
   const oneYearClass = Number(snapshot.oneYearPct) >= 0 ? 'market-up' : 'market-down';
-  return `<span class="market-strip" aria-label="Market snapshot"><span class="market-ticker">${escapeHtml(snapshot.symbol)}</span><span class="market-price">${escapeHtml(price)}</span><span class="${ytdClass}">YTD ${escapeHtml(ytd)}</span><span class="${oneYearClass}">1Y ${escapeHtml(oneYear)}</span></span>`;
+  return `<span class="market-strip" aria-label="Market snapshot"><span class="market-ticker">${escapeHtml(snapshot.symbol)}</span><span class="market-price">${escapeHtml(price)}</span><span class="${ytdClass}">${escapeHtml(ytd)}</span><span class="${oneYearClass}">${escapeHtml(oneYear)}</span></span>`;
 }
 
 function injectMarketSnapshot(html, snapshot) {
   const strip = marketStripHtml(snapshot);
   if (!strip || String(html || '').includes('class="market-strip"')) return html;
-  let next = html.replace(/(<span class=["']meta["'][^>]*>[\s\S]*?<\/span>)/i, `$1${strip}`);
+
+  // Generated earnings headers use a compact single-line meta span with
+  // no child spans. Target that exact shape so we do not accidentally
+  // match the outer title element and duplicate quarter/date text.
+  let next = html.replace(/(<span class=["']meta["'][^>]*>[^<]*<\/span>)/i, (match, meta) => `${meta}${strip}`);
   if (next !== html) return next;
-  next = html.replace(/(<span class=["']date["'][^>]*>[\s\S]*?<\/span>)/i, `$1${strip}`);
+
+  // Expert headers have a nested .date span inside .header-meta.
+  next = html.replace(/(<span class=["']date["'][^>]*>[^<]*<\/span>)/i, (match, date) => `${date}${strip}`);
   return next;
 }
 function normalizeProvider(provider) {
@@ -1062,12 +1068,12 @@ app.post('/summarize-expert', async (req, res) => {
   .market-strip {
     display: inline-flex;
     align-items: center;
-    gap: 0.42rem;
+    gap: 0.5rem;
     white-space: nowrap;
     font-size: 0.76rem;
     font-weight: 400;
     color: #5a4a3a;
-    margin-left: 0.25rem;
+    margin-left: 0.45rem;
   }
   .market-strip .market-ticker {
     color: #4a7ab5;
