@@ -177,21 +177,20 @@ function marketStripHtml(snapshot) {
   if (!price || !ytd || !oneYear) return '';
   const ytdClass = Number(snapshot.ytdPct) >= 0 ? 'market-up' : 'market-down';
   const oneYearClass = Number(snapshot.oneYearPct) >= 0 ? 'market-up' : 'market-down';
-  return `<span class="market-strip" aria-label="Market snapshot"><span class="market-ticker">${escapeHtml(snapshot.symbol)}</span><span class="market-price">${escapeHtml(price)}</span><span class="${ytdClass}">${escapeHtml(ytd)}</span><span class="${oneYearClass}">${escapeHtml(oneYear)}</span></span>`;
+  return `<span class="market-strip" aria-label="Market snapshot"><span class="market-price">Price: ${escapeHtml(price)}</span><span class="${ytdClass}">YTD ${escapeHtml(ytd)}</span><span class="${oneYearClass}">1Y ${escapeHtml(oneYear)}</span></span>`;
 }
 
 function injectMarketSnapshot(html, snapshot) {
   const strip = marketStripHtml(snapshot);
   if (!strip || String(html || '').includes('class="market-strip"')) return html;
 
-  // Generated earnings headers use a compact single-line meta span with
-  // no child spans. Target that exact shape so we do not accidentally
-  // match the outer title element and duplicate quarter/date text.
-  let next = html.replace(/(<span class=["']meta["'][^>]*>[^<]*<\/span>)/i, (match, meta) => `${meta}${strip}`);
+  // Earnings headers: title, market snapshot, actions.
+  let next = html.replace(/(<div class=["']header-title["'][^>]*>[\s\S]*?<\/div>)/i, (match, title) => `${title}\n${strip}`);
   if (next !== html) return next;
 
-  // Expert headers have a nested .date span inside .header-meta.
-  next = html.replace(/(<span class=["']date["'][^>]*>[^<]*<\/span>)/i, (match, date) => `${date}${strip}`);
+  // Expert headers use .header-left followed by .header-buttons; insert
+  // between them so the quote block sits in the middle of the header.
+  next = html.replace(/(<div class=["']header-buttons["'][^>]*>)/i, (match, buttons) => `${strip}\n${buttons}`);
   return next;
 }
 function normalizeProvider(provider) {
@@ -1039,13 +1038,20 @@ app.post('/summarize-expert', async (req, res) => {
       let finalHtml = html.replace('</head>', `<meta name="summarizer-verbosity" content="${verbosity}">\n<meta name="summarizer-model" content="${lockedTarget}">\n</head>`);
 
       const expertActionCss = `
+  header.sticky {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto max-content;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .header-left { grid-column: 1; min-width: 0; }
   .header-meta {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 0.4rem;
   }
-  .header-buttons { display: flex; gap: 0.4rem; align-items: center; }
+  .header-buttons { display: flex; gap: 0.4rem; align-items: center; grid-column: 3; justify-self: end; }
   .header-buttons .btn,
   .header-buttons button,
   .header-buttons a {
@@ -1073,20 +1079,18 @@ app.post('/summarize-expert', async (req, res) => {
     font-size: 0.76rem;
     font-weight: 400;
     color: #5a4a3a;
-    margin-left: 0.45rem;
-  }
-  .market-strip .market-ticker {
-    color: #4a7ab5;
-    border: 1px solid #c0c8d0;
-    border-radius: 4px;
-    padding: 0.12rem 0.38rem;
-    background: #eef3fa;
-    font-weight: 600;
-    letter-spacing: 0.02em;
+    grid-column: 2;
+    justify-self: center;
   }
   .market-strip .market-price { color: #1a1a1a; font-weight: 400; }
   .market-strip .market-up { color: #28734a; font-weight: 400; }
   .market-strip .market-down { color: #a34d3d; font-weight: 400; }
+  @media (max-width: 900px) {
+    header.sticky { grid-template-columns: minmax(0, 1fr) max-content; }
+    .header-left { grid-column: 1; }
+    .header-buttons { grid-column: 2; }
+    .market-strip { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
+  }
 `;
       finalHtml = finalHtml.replace('</style>', `${expertActionCss}</style>`);
       const marketSnapshot = marketSnapshotPromise
