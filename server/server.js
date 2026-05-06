@@ -101,14 +101,15 @@ function extractTickerFromHtml(html) {
 function formatPrice(value) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return '';
-  return `$${n >= 100 ? n.toFixed(2) : n.toFixed(2)}`;
+  return n >= 100 ? `$${Math.round(n).toLocaleString('en-US')}` : `$${n.toFixed(2)}`;
 }
 
 function formatPct(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return '';
-  const sign = n >= 0 ? '+' : '';
-  return `${sign}${n.toFixed(1)}%`;
+  const rounded = Math.round(n);
+  const sign = rounded >= 0 ? '+' : '';
+  return `${sign}${rounded}%`;
 }
 
 function pctChange(price, base) {
@@ -1040,7 +1041,7 @@ app.post('/summarize-expert', async (req, res) => {
       const expertActionCss = `
   header.sticky {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto max-content;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
     gap: 0.5rem;
   }
