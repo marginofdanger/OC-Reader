@@ -1078,14 +1078,14 @@ app.post('/summarize-expert', async (req, res) => {
     gap: 0.5rem;
     white-space: nowrap;
     font-size: 0.76rem;
-    font-weight: 400;
+    font-weight: 700;
     color: #5a4a3a;
     grid-column: 2;
     justify-self: center;
   }
-  .market-strip .market-price { color: #1a1a1a; font-weight: 400; }
-  .market-strip .market-up { color: #28734a; font-weight: 400; }
-  .market-strip .market-down { color: #a34d3d; font-weight: 400; }
+  .market-strip .market-price { color: #1a1a1a; font-weight: 700; }
+  .market-strip .market-up { color: #28734a; font-weight: 700; }
+  .market-strip .market-down { color: #a34d3d; font-weight: 700; }
   .market-strip strong { font-weight: 700; }
   @media (max-width: 900px) {
     header.sticky { grid-template-columns: minmax(0, 1fr) max-content; }
