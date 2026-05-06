@@ -714,6 +714,8 @@ app.post('/summarize', async (req, res) => {
   const model = lockedProvider === 'codex'
     ? resolveCodexModel(req.body.codexModel || settings.codexModel)
     : (req.body.model || settings.model || 'opus');
+  const initialMarketTicker = normalizeMarketTicker(req.body.ticker || req.body.symbol);
+  const marketSnapshotPromise = initialMarketTicker ? fetchMarketSnapshot(initialMarketTicker) : null;
 
   // Support both split and legacy formats
   let transcript = req.body.transcript || '';
@@ -794,7 +796,10 @@ app.post('/summarize', async (req, res) => {
 
       // Inject metadata into HTML head
       finalHtml = finalHtml.replace('</head>', `<meta name="summarizer-verbosity" content="${verbosity}">\n<meta name="summarizer-model" content="${lockedTarget}">\n</head>`);
-      finalHtml = injectMarketSnapshot(finalHtml, await fetchMarketSnapshot(extractTickerFromHtml(finalHtml)));
+      const marketSnapshot = marketSnapshotPromise
+        ? (await marketSnapshotPromise) || await fetchMarketSnapshot(extractTickerFromHtml(finalHtml))
+        : await fetchMarketSnapshot(extractTickerFromHtml(finalHtml));
+      finalHtml = injectMarketSnapshot(finalHtml, marketSnapshot);
 
       // Inject bookmark data attributes server-side for earnings calls — strip any Claude-generated data-* attrs first
       const earningsSource = 'EC';
@@ -925,6 +930,8 @@ app.post('/summarize-expert', async (req, res) => {
   const model = lockedProvider === 'codex'
     ? resolveCodexModel(req.body.codexModel || settings.codexModel)
     : (req.body.model || settings.model || 'opus');
+  const initialMarketTicker = normalizeMarketTicker(primaryCompany);
+  const marketSnapshotPromise = initialMarketTicker ? fetchMarketSnapshot(initialMarketTicker) : null;
 
   if (!transcript || transcript.length < 200) {
     return res.status(400).json({ success: false, error: 'Missing or too short transcript text' });
@@ -1076,7 +1083,10 @@ app.post('/summarize-expert', async (req, res) => {
   .market-strip .market-down { color: #a34d3d; font-weight: 400; }
 `;
       finalHtml = finalHtml.replace('</style>', `${expertActionCss}</style>`);
-      finalHtml = injectMarketSnapshot(finalHtml, await fetchMarketSnapshot(normalizeMarketTicker(primaryCompany) || extractTickerFromHtml(finalHtml)));
+      const marketSnapshot = marketSnapshotPromise
+        ? (await marketSnapshotPromise) || await fetchMarketSnapshot(extractTickerFromHtml(finalHtml))
+        : await fetchMarketSnapshot(extractTickerFromHtml(finalHtml));
+      finalHtml = injectMarketSnapshot(finalHtml, marketSnapshot);
 
       // Inject bookmark data attributes server-side — strip any Claude-generated data-* attrs first to avoid duplicates
       finalHtml = finalHtml.replace(/(<(?:button|a)[^>]*id="bookmark-btn")[^>]*>/, (match, prefix) => {

@@ -23,6 +23,14 @@
   const year = titleMatch ? titleMatch[3] : '';
   const companyLink = document.querySelector('a[href*="/companies/"]');
   const companyName = companyLink ? companyLink.textContent.trim() : company;
+  const companyLinkText = companyLink ? companyLink.textContent.trim() : '';
+  const companyLinkHref = companyLink ? companyLink.href : '';
+  const ticker =
+    (companyLinkText.match(/\(([A-Z][A-Z0-9.-]{0,9})\)/) || [])[1] ||
+    (titleText.match(/\(([A-Z][A-Z0-9.-]{0,9})\)/) || [])[1] ||
+    (companyLinkHref.match(/\/companies\/([A-Z][A-Z0-9.-]{0,9})(?:[/?#]|$)/i) || [])[1] ||
+    ((document.body.innerText || '').match(/\b(?:NASDAQ|NYSE|AMEX|Ticker)\s*[:：]?\s*([A-Z][A-Z0-9.-]{0,9})\b/i) || [])[1] ||
+    '';
 
   // Extract event date from sidebar (e.g. "02/06/26 8:30 AM EST")
   let eventDate = '';
@@ -131,6 +139,7 @@
       quarter,
       year,
       title: titleText,
+      ticker,
       eventDate,
       sourceUrl: window.location.href
     }
