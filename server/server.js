@@ -176,9 +176,9 @@ function marketStripHtml(snapshot) {
   const ytd = formatPct(snapshot.ytdPct);
   const oneYear = formatPct(snapshot.oneYearPct);
   if (!price || !ytd || !oneYear) return '';
-  const ytdClass = Number(snapshot.ytdPct) >= 0 ? 'market-up' : 'market-down';
-  const oneYearClass = Number(snapshot.oneYearPct) >= 0 ? 'market-up' : 'market-down';
-  return `<span class="market-strip" aria-label="Market snapshot"><span class="market-price">Px: <strong>${escapeHtml(price)}</strong></span><span class="${ytdClass}">YTD: <strong>${escapeHtml(ytd)}</strong></span><span class="${oneYearClass}">1Y: <strong>${escapeHtml(oneYear)}</strong></span></span>`;
+  const ytdClass = Number(snapshot.ytdPct) > 0 ? 'market-up' : Number(snapshot.ytdPct) < 0 ? 'market-down' : 'market-flat';
+  const oneYearClass = Number(snapshot.oneYearPct) > 0 ? 'market-up' : Number(snapshot.oneYearPct) < 0 ? 'market-down' : 'market-flat';
+  return `<span class="market-strip" aria-label="Market snapshot"><span class="market-price">Px: <strong>${escapeHtml(price)}</strong></span><span>YTD: <strong class="${ytdClass}">${escapeHtml(ytd)}</strong></span><span>1Y: <strong class="${oneYearClass}">${escapeHtml(oneYear)}</strong></span></span>`;
 }
 
 function injectMarketSnapshot(html, snapshot) {
@@ -1084,8 +1084,9 @@ app.post('/summarize-expert', async (req, res) => {
     justify-self: center;
   }
   .market-strip .market-price { color: #1a1a1a; font-weight: 500; }
-  .market-strip .market-up { color: #28734a; font-weight: 500; }
-  .market-strip .market-down { color: #a34d3d; font-weight: 500; }
+  .market-strip .market-up { color: #28734a; }
+  .market-strip .market-down { color: #a34d3d; }
+  .market-strip .market-flat { color: #5a4a3a; }
   .market-strip strong { font-weight: 700; }
   @media (max-width: 900px) {
     header.sticky { grid-template-columns: minmax(0, 1fr) max-content; }
