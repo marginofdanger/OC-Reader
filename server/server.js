@@ -73,6 +73,121 @@ function uniqueFilename(dir, name) {
   }
   return { filename: name, outputPath: filePath };
 }
+
+const MARKET_CACHE = new Map();
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function normalizeMarketTicker(value) {
+  const raw = String(value || '').trim();
+  const paren = raw.match(/\(([A-Z][A-Z0-9.-]{0,9})\)/);
+  const candidate = paren ? paren[1] : raw;
+  if (!/^[A-Z][A-Z0-9.-]{0,9}$/.test(candidate)) return '';
+  return candidate.toUpperCase();
+}
+
+function extractTickerFromHtml(html) {
+  const tickerMatch = String(html || '').match(/class=["'][^"']*\bticker\b[^"']*["'][^>]*>\s*\(?([A-Z][A-Z0-9.-]{0,9})\)?\s*</i);
+  return normalizeMarketTicker(tickerMatch ? tickerMatch[1] : '');
+}
+
+function formatPrice(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  return `$${n >= 100 ? n.toFixed(2) : n.toFixed(2)}`;
+}
+
+function formatPct(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '';
+  const sign = n >= 0 ? '+' : '';
+  return `${sign}${n.toFixed(1)}%`;
+}
+
+function pctChange(price, base) {
+  const p = Number(price);
+  const b = Number(base);
+  if (!Number.isFinite(p) || !Number.isFinite(b) || b <= 0) return null;
+  return ((p / b) - 1) * 100;
+}
+
+async function fetchMarketSnapshot(ticker) {
+  const symbol = normalizeMarketTicker(ticker);
+  if (!symbol || typeof fetch !== 'function') return null;
+
+  const cached = MARKET_CACHE.get(symbol);
+  if (cached && Date.now() - cached.ts < 10 * 60 * 1000) return cached.snapshot;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 6000);
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1y&interval=1d`;
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const result = data && data.chart && data.chart.result && data.chart.result[0];
+    const meta = result && result.meta;
+    const quote = result && result.indicators && result.indicators.quote && result.indicators.quote[0];
+    if (!meta || !quote || !Array.isArray(quote.close)) return null;
+
+    const closes = quote.close;
+    const timestamps = Array.isArray(result.timestamp) ? result.timestamp : [];
+    const price = Number(meta.regularMarketPrice) || [...closes].reverse().find(v => Number.isFinite(Number(v)));
+    if (!Number.isFinite(Number(price))) return null;
+
+    const oneYearBase = closes.find(v => Number.isFinite(Number(v)) && Number(v) > 0);
+    const yearStart = Date.UTC(new Date().getFullYear(), 0, 1) / 1000;
+    let ytdBase = null;
+    for (let i = 0; i < closes.length; i++) {
+      if ((timestamps[i] || 0) >= yearStart && Number.isFinite(Number(closes[i])) && Number(closes[i]) > 0) {
+        ytdBase = closes[i];
+        break;
+      }
+    }
+
+    const snapshot = {
+      symbol: normalizeMarketTicker(meta.symbol || symbol) || symbol,
+      price: Number(price),
+      ytdPct: pctChange(price, ytdBase),
+      oneYearPct: pctChange(price, oneYearBase),
+    };
+    MARKET_CACHE.set(symbol, { ts: Date.now(), snapshot });
+    return snapshot;
+  } catch (e) {
+    log(`WARN market snapshot unavailable for ${symbol}: ${e.message}`);
+    MARKET_CACHE.set(symbol, { ts: Date.now(), snapshot: null });
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function marketStripHtml(snapshot) {
+  if (!snapshot) return '';
+  const price = formatPrice(snapshot.price);
+  const ytd = formatPct(snapshot.ytdPct);
+  const oneYear = formatPct(snapshot.oneYearPct);
+  if (!price || !ytd || !oneYear) return '';
+  const ytdClass = Number(snapshot.ytdPct) >= 0 ? 'market-up' : 'market-down';
+  const oneYearClass = Number(snapshot.oneYearPct) >= 0 ? 'market-up' : 'market-down';
+  return `<span class="market-strip" aria-label="Market snapshot"><span class="market-ticker">${escapeHtml(snapshot.symbol)}</span><span class="market-price">${escapeHtml(price)}</span><span class="${ytdClass}">YTD ${escapeHtml(ytd)}</span><span class="${oneYearClass}">1Y ${escapeHtml(oneYear)}</span></span>`;
+}
+
+function injectMarketSnapshot(html, snapshot) {
+  const strip = marketStripHtml(snapshot);
+  if (!strip || String(html || '').includes('class="market-strip"')) return html;
+  let next = html.replace(/(<span class=["']meta["'][^>]*>[\s\S]*?<\/span>)/i, `$1${strip}`);
+  if (next !== html) return next;
+  next = html.replace(/(<span class=["']date["'][^>]*>[\s\S]*?<\/span>)/i, `$1${strip}`);
+  return next;
+}
 function normalizeProvider(provider) {
   const p = String(provider || 'claude').toLowerCase();
   return p === 'codex' ? 'codex' : 'claude';
@@ -347,7 +462,7 @@ function stripModelHtmlWrapper(html) {
   return cleaned;
 }
 
-function saveEarningsHtmlOutput(html, opts) {
+async function saveEarningsHtmlOutput(html, opts) {
   html = stripModelHtmlWrapper(html);
   if (!html || (!html.includes('<!DOCTYPE') && !html.includes('<html'))) {
     throw new Error(`Empty or invalid HTML output (${html ? html.length : 0} chars). First 200: ${(html || '').slice(0, 200)}`);
@@ -368,6 +483,7 @@ function saveEarningsHtmlOutput(html, opts) {
   finalHtml = finalHtml.replace(/<link\b[^>]*rel=["']stylesheet["'][^>]*>\s*/gi, '');
   finalHtml = finalHtml.replace('</head>', '<link rel="stylesheet" href="/earnings-style.css">\n</head>');
   finalHtml = finalHtml.replace('</head>', `<meta name="summarizer-verbosity" content="${opts.verbosity}">\n<meta name="summarizer-model" content="${opts.target}">\n</head>`);
+  finalHtml = injectMarketSnapshot(finalHtml, await fetchMarketSnapshot(extractTickerFromHtml(finalHtml)));
 
   const earningsSource = 'EC';
   const earningsDate = opts.eventDate || `${quarter} ${year}`;
@@ -678,6 +794,7 @@ app.post('/summarize', async (req, res) => {
 
       // Inject metadata into HTML head
       finalHtml = finalHtml.replace('</head>', `<meta name="summarizer-verbosity" content="${verbosity}">\n<meta name="summarizer-model" content="${lockedTarget}">\n</head>`);
+      finalHtml = injectMarketSnapshot(finalHtml, await fetchMarketSnapshot(extractTickerFromHtml(finalHtml)));
 
       // Inject bookmark data attributes server-side for earnings calls — strip any Claude-generated data-* attrs first
       const earningsSource = 'EC';
@@ -767,7 +884,7 @@ function shareEarningsPage(btn) {
               timeoutMs: 300000,
               taskType: 'earnings',
             });
-            const { filename: shadowFilename, outputPath: shadowOutputPath } = saveEarningsHtmlOutput(opusHtml, {
+            const { filename: shadowFilename, outputPath: shadowOutputPath } = await saveEarningsHtmlOutput(opusHtml, {
               company,
               quarter,
               year,
@@ -909,6 +1026,12 @@ app.post('/summarize-expert', async (req, res) => {
       let finalHtml = html.replace('</head>', `<meta name="summarizer-verbosity" content="${verbosity}">\n<meta name="summarizer-model" content="${lockedTarget}">\n</head>`);
 
       const expertActionCss = `
+  .header-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
   .header-buttons { display: flex; gap: 0.4rem; align-items: center; }
   .header-buttons .btn,
   .header-buttons button,
@@ -929,8 +1052,31 @@ app.post('/summarize-expert', async (req, res) => {
     text-decoration: none;
     cursor: pointer;
   }
+  .market-strip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    white-space: nowrap;
+    font-size: 0.76rem;
+    font-weight: 400;
+    color: #5a4a3a;
+    margin-left: 0.25rem;
+  }
+  .market-strip .market-ticker {
+    color: #4a7ab5;
+    border: 1px solid #c0c8d0;
+    border-radius: 4px;
+    padding: 0.12rem 0.38rem;
+    background: #eef3fa;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .market-strip .market-price { color: #1a1a1a; font-weight: 400; }
+  .market-strip .market-up { color: #28734a; font-weight: 400; }
+  .market-strip .market-down { color: #a34d3d; font-weight: 400; }
 `;
       finalHtml = finalHtml.replace('</style>', `${expertActionCss}</style>`);
+      finalHtml = injectMarketSnapshot(finalHtml, await fetchMarketSnapshot(normalizeMarketTicker(primaryCompany) || extractTickerFromHtml(finalHtml)));
 
       // Inject bookmark data attributes server-side — strip any Claude-generated data-* attrs first to avoid duplicates
       finalHtml = finalHtml.replace(/(<(?:button|a)[^>]*id="bookmark-btn")[^>]*>/, (match, prefix) => {
