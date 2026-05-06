@@ -53,6 +53,7 @@ body {
 .market-strip .market-price { color: #2c2418; font-weight: 400; }
 .market-strip .market-up { color: #28734a; font-weight: 400; }
 .market-strip .market-down { color: #a34d3d; font-weight: 400; }
+.market-strip strong { font-weight: 700; }
 .header-actions { display: flex; gap: 0.35rem; align-items: center; grid-column: 3; justify-self: end; }
 .header-actions a, .header-actions button {
   border: 1px solid #c4956a;

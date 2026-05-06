@@ -178,7 +178,7 @@ function marketStripHtml(snapshot) {
   if (!price || !ytd || !oneYear) return '';
   const ytdClass = Number(snapshot.ytdPct) >= 0 ? 'market-up' : 'market-down';
   const oneYearClass = Number(snapshot.oneYearPct) >= 0 ? 'market-up' : 'market-down';
-  return `<span class="market-strip" aria-label="Market snapshot"><span class="market-price">Price: ${escapeHtml(price)}</span><span class="${ytdClass}">YTD ${escapeHtml(ytd)}</span><span class="${oneYearClass}">1Y ${escapeHtml(oneYear)}</span></span>`;
+  return `<span class="market-strip" aria-label="Market snapshot"><span class="market-price"><strong>Px:</strong> ${escapeHtml(price)}</span><span class="${ytdClass}"><strong>YTD:</strong> ${escapeHtml(ytd)}</span><span class="${oneYearClass}"><strong>1Y:</strong> ${escapeHtml(oneYear)}</span></span>`;
 }
 
 function injectMarketSnapshot(html, snapshot) {
@@ -1086,6 +1086,7 @@ app.post('/summarize-expert', async (req, res) => {
   .market-strip .market-price { color: #1a1a1a; font-weight: 400; }
   .market-strip .market-up { color: #28734a; font-weight: 400; }
   .market-strip .market-down { color: #a34d3d; font-weight: 400; }
+  .market-strip strong { font-weight: 700; }
   @media (max-width: 900px) {
     header.sticky { grid-template-columns: minmax(0, 1fr) max-content; }
     .header-left { grid-column: 1; }
