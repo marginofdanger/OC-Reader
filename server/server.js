@@ -112,11 +112,41 @@ function formatPct(value) {
   return `${sign}${rounded}%`;
 }
 
+function formatMarketCap(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  const billions = n / 1e9;
+  return billions < 10
+    ? `$${billions.toFixed(1)}B`
+    : `$${Math.round(billions).toLocaleString('en-US')}B`;
+}
+
 function pctChange(price, base) {
   const p = Number(price);
   const b = Number(base);
   if (!Number.isFinite(p) || !Number.isFinite(b) || b <= 0) return null;
   return ((p / b) - 1) * 100;
+}
+
+async function fetchNasdaqMarketCap(symbol, signal) {
+  try {
+    const nasdaqSymbol = String(symbol || '').replace(/-/g, '.');
+    const url = `https://api.nasdaq.com/api/quote/${encodeURIComponent(nasdaqSymbol)}/summary?assetclass=stocks`;
+    const response = await fetch(url, {
+      signal,
+      headers: {
+        'accept': 'application/json,text/plain,*/*',
+        'user-agent': 'Mozilla/5.0',
+      },
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    const raw = data && data.data && data.data.summaryData && data.data.summaryData.MarketCap && data.data.summaryData.MarketCap.value;
+    const marketCap = Number(String(raw || '').replace(/[^0-9.-]/g, ''));
+    return Number.isFinite(marketCap) && marketCap > 0 ? marketCap : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 async function fetchMarketSnapshot(ticker) {
@@ -153,9 +183,15 @@ async function fetchMarketSnapshot(ticker) {
       }
     }
 
+    let marketCap = Number(meta.marketCap);
+    if (!Number.isFinite(marketCap) || marketCap <= 0) {
+      marketCap = await fetchNasdaqMarketCap(symbol, controller.signal);
+    }
+
     const snapshot = {
       symbol: normalizeMarketTicker(meta.symbol || symbol) || symbol,
       price: Number(price),
+      marketCap: Number.isFinite(marketCap) && marketCap > 0 ? marketCap : null,
       ytdPct: pctChange(price, ytdBase),
       oneYearPct: pctChange(price, oneYearBase),
     };
@@ -173,12 +209,14 @@ async function fetchMarketSnapshot(ticker) {
 function marketStripHtml(snapshot) {
   if (!snapshot) return '';
   const price = formatPrice(snapshot.price);
+  const marketCap = formatMarketCap(snapshot.marketCap);
   const ytd = formatPct(snapshot.ytdPct);
   const oneYear = formatPct(snapshot.oneYearPct);
   if (!price || !ytd || !oneYear) return '';
   const ytdClass = Number(snapshot.ytdPct) > 0 ? 'market-up' : Number(snapshot.ytdPct) < 0 ? 'market-down' : 'market-flat';
   const oneYearClass = Number(snapshot.oneYearPct) > 0 ? 'market-up' : Number(snapshot.oneYearPct) < 0 ? 'market-down' : 'market-flat';
-  return `<span class="market-strip" aria-label="Market snapshot"><span class="market-price">Px: <strong>${escapeHtml(price)}</strong></span><span>YTD: <strong class="${ytdClass}">${escapeHtml(ytd)}</strong></span><span>1Y: <strong class="${oneYearClass}">${escapeHtml(oneYear)}</strong></span></span>`;
+  const marketCapHtml = marketCap ? `<span class="market-cap">Mkt Cap: <strong>${escapeHtml(marketCap)}</strong></span>` : '';
+  return `<span class="market-strip" aria-label="Market snapshot"><span class="market-price">Px: <strong>${escapeHtml(price)}</strong></span>${marketCapHtml}<span>YTD: <strong class="${ytdClass}">${escapeHtml(ytd)}</strong></span><span>1Y: <strong class="${oneYearClass}">${escapeHtml(oneYear)}</strong></span></span>`;
 }
 
 function injectMarketSnapshot(html, snapshot) {
@@ -1083,7 +1121,8 @@ app.post('/summarize-expert', async (req, res) => {
     grid-column: 2;
     justify-self: center;
   }
-  .market-strip .market-price { color: #1a1a1a; font-weight: 500; }
+  .market-strip .market-price,
+  .market-strip .market-cap { color: #1a1a1a; font-weight: 500; }
   .market-strip .market-up { color: #28734a; }
   .market-strip .market-down { color: #a34d3d; }
   .market-strip .market-flat { color: #5a4a3a; }
