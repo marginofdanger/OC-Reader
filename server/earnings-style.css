@@ -52,6 +52,7 @@ body {
 }
 .market-strip .market-price,
 .market-strip .market-cap { color: #2c2418; font-weight: 500; }
+.market-strip .market-sep { color: #8b6d4e; font-weight: 500; }
 .market-strip .market-up { color: #28734a; }
 .market-strip .market-down { color: #a34d3d; }
 .market-strip .market-flat { color: #5a4a3a; }

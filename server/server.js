@@ -215,8 +215,13 @@ function marketStripHtml(snapshot) {
   if (!price || !ytd || !oneYear) return '';
   const ytdClass = Number(snapshot.ytdPct) > 0 ? 'market-up' : Number(snapshot.ytdPct) < 0 ? 'market-down' : 'market-flat';
   const oneYearClass = Number(snapshot.oneYearPct) > 0 ? 'market-up' : Number(snapshot.oneYearPct) < 0 ? 'market-down' : 'market-flat';
-  const marketCapHtml = marketCap ? `<span class="market-cap">Mkt Cap: <strong>${escapeHtml(marketCap)}</strong></span>` : '';
-  return `<span class="market-strip" aria-label="Market snapshot"><span class="market-price">Px: <strong>${escapeHtml(price)}</strong></span>${marketCapHtml}<span>YTD: <strong class="${ytdClass}">${escapeHtml(ytd)}</strong></span><span>1Y: <strong class="${oneYearClass}">${escapeHtml(oneYear)}</strong></span></span>`;
+  const parts = [
+    `<span class="market-price">Px: <strong>${escapeHtml(price)}</strong></span>`,
+    `<span>YTD: <strong class="${ytdClass}">${escapeHtml(ytd)}</strong></span>`,
+    `<span>1Y: <strong class="${oneYearClass}">${escapeHtml(oneYear)}</strong></span>`,
+  ];
+  if (marketCap) parts.push(`<span class="market-cap">Mkt Cap: <strong>${escapeHtml(marketCap)}</strong></span>`);
+  return `<span class="market-strip" aria-label="Market snapshot">${parts.join('<span class="market-sep">|</span>')}</span>`;
 }
 
 function injectMarketSnapshot(html, snapshot) {
@@ -1123,6 +1128,7 @@ app.post('/summarize-expert', async (req, res) => {
   }
   .market-strip .market-price,
   .market-strip .market-cap { color: #1a1a1a; font-weight: 500; }
+  .market-strip .market-sep { color: #8b6d4e; font-weight: 500; }
   .market-strip .market-up { color: #28734a; }
   .market-strip .market-down { color: #a34d3d; }
   .market-strip .market-flat { color: #5a4a3a; }
@@ -1501,7 +1507,6 @@ app.post('/settings', (req, res) => {
 app.listen(PORT, () => {
   log(`OC-Reader server running at http://localhost:${PORT} (EC/expert: ${settings.provider}, YouTube: ${settings.youtubeProvider}, concurrency: ${maxConcurrency})`);
 });
-
 
 
 
