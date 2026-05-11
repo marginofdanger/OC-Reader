@@ -94,8 +94,23 @@ function normalizeMarketTicker(value) {
 }
 
 function extractTickerFromHtml(html) {
-  const tickerMatch = String(html || '').match(/class=["'][^"']*\bticker\b[^"']*["'][^>]*>\s*\(?([A-Z][A-Z0-9.-]{0,9})\)?\s*</i);
-  return normalizeMarketTicker(tickerMatch ? tickerMatch[1] : '');
+  const source = String(html || '');
+  const tickerMatch = source.match(/class=["'][^"']*\bticker\b[^"']*["'][^>]*>\s*\(?([A-Z][A-Z0-9.-]{0,9})\)?\s*</i);
+  if (tickerMatch) return normalizeMarketTicker(tickerMatch[1]);
+
+  const headerMatch = source.match(/class=["'][^"']*\b(?:header-title|hdr-title)\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+  const titleMatch = source.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const candidates = [headerMatch && headerMatch[1], titleMatch && titleMatch[1]]
+    .filter(Boolean)
+    .map(s => s.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim());
+
+  for (const text of candidates) {
+    const paren = text.match(/\(([A-Z][A-Z0-9.-]{0,9})\)/);
+    if (paren) return normalizeMarketTicker(paren[1]);
+    const dash = text.match(/(?:^|[—-]\s*)([A-Z][A-Z0-9.-]{0,9})(?:\s*[—-]|$)/);
+    if (dash) return normalizeMarketTicker(dash[1]);
+  }
+  return '';
 }
 
 function formatPrice(value) {
@@ -1056,8 +1071,13 @@ app.post('/summarize-expert', async (req, res) => {
         throw new Error(`Empty or invalid HTML output (${html.length} chars). First 200: ${html.slice(0, 200)}`);
       }
 
-      // Generate filename from title or company
-      const nameSource = primaryCompany || title || 'EXPERT';
+      const htmlTicker = extractTickerFromHtml(html);
+      if (htmlTicker && initialMarketTicker && htmlTicker !== initialMarketTicker) {
+        log(`Job ${jobId}: expert ticker override ${initialMarketTicker} -> ${htmlTicker} from generated header`);
+      }
+
+      // Generate filename from the generated header ticker when available, then request metadata.
+      const nameSource = htmlTicker || primaryCompany || title || 'EXPERT';
       const sanitized = nameSource
         .replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toUpperCase();
       const datePart = interviewDate ? interviewDate.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '') : new Date().toISOString().slice(0, 10);
@@ -1149,9 +1169,15 @@ app.post('/summarize-expert', async (req, res) => {
   }
 `;
       finalHtml = finalHtml.replace('</style>', `${expertActionCss}</style>`);
-      const marketSnapshot = marketSnapshotPromise
-        ? (await marketSnapshotPromise) || await fetchMarketSnapshot(extractTickerFromHtml(finalHtml))
-        : await fetchMarketSnapshot(extractTickerFromHtml(finalHtml));
+      const finalMarketTicker = extractTickerFromHtml(finalHtml) || htmlTicker || initialMarketTicker;
+      let marketSnapshot = null;
+      if (finalMarketTicker && finalMarketTicker === initialMarketTicker && marketSnapshotPromise) {
+        marketSnapshot = await marketSnapshotPromise;
+      } else if (finalMarketTicker) {
+        marketSnapshot = await fetchMarketSnapshot(finalMarketTicker);
+      } else if (marketSnapshotPromise) {
+        marketSnapshot = await marketSnapshotPromise;
+      }
       finalHtml = injectMarketSnapshot(finalHtml, marketSnapshot);
 
       // Inject bookmark data attributes server-side — strip any Claude-generated data-* attrs first to avoid duplicates
