@@ -237,6 +237,13 @@ function injectMarketSnapshot(html, snapshot) {
   next = html.replace(/(<div class=["']header-buttons["'][^>]*>)/i, (match, buttons) => `${strip}\n${buttons}`);
   return next;
 }
+function normalizeExpertHeaderHtml(html) {
+  let next = String(html || '');
+  next = next.replace(/(<div\s+class=["']header-row["'][^>]*>\s*)<div(?![^>]*\bclass=)/i, '$1<div class="header-left"');
+  next = next.replace(/\bheader-btns\b/g, 'header-buttons');
+  next = next.replace(/(<span\s+class=["']profile["'][^>]*>[\s\S]*?<\/span>)\s*(?:&middot;|·)\s*(<span\s+class=["']src-date["'][^>]*>)/i, '$1 $2');
+  return next;
+}
 function normalizeProvider(provider) {
   const p = String(provider || 'claude').toLowerCase();
   return p === 'codex' ? 'codex' : 'claude';
@@ -1079,14 +1086,15 @@ app.post('/summarize-expert', async (req, res) => {
       }
 
       // Inject metadata into HTML head
-      let finalHtml = html.replace('</head>', `<meta name="summarizer-verbosity" content="${verbosity}">\n<meta name="summarizer-model" content="${lockedTarget}">\n</head>`);
+      let finalHtml = normalizeExpertHeaderHtml(html).replace('</head>', `<meta name="summarizer-verbosity" content="${verbosity}">\n<meta name="summarizer-model" content="${lockedTarget}">\n</head>`);
 
       const expertActionCss = `
-  header.sticky {
+  header.sticky .header-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    align-items: center;
-    gap: 0.5rem;
+    align-items: start;
+    gap: 0.75rem;
+    width: 100%;
   }
   .header-left { grid-column: 1; min-width: 0; }
   .header-meta {
@@ -1134,7 +1142,7 @@ app.post('/summarize-expert', async (req, res) => {
   .market-strip .market-flat { color: #5a4a3a; }
   .market-strip strong { font-weight: 700; }
   @media (max-width: 900px) {
-    header.sticky { grid-template-columns: minmax(0, 1fr) max-content; }
+    header.sticky .header-row { grid-template-columns: minmax(0, 1fr) max-content; }
     .header-left { grid-column: 1; }
     .header-buttons { grid-column: 2; }
     .market-strip { grid-column: 1 / -1; grid-row: 2; justify-self: start; }

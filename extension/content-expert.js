@@ -2,6 +2,10 @@
   const doc = document;
   const bodyText = doc.body.innerText || '';
 
+  function isGenericTitle(value) {
+    return /^(AlphaSense|AlphaSights|Expert Interview|Interview Transcript|Transcript|Talk to this Transcript|Talk to this Expert)$/i.test(String(value || '').trim());
+  }
+
   // --- Detect platform ---
   const hostname = window.location.hostname;
   let source = '';
@@ -40,7 +44,7 @@
   const h1 = doc.querySelector('h1');
   if (h1) title = h1.textContent.trim();
   // For AlphaSense iframes, try parent frame for title
-  if (!title || title === 'AlphaSense') {
+  if (!title || title === 'AlphaSense' || isGenericTitle(title)) {
     try {
       if (window.top !== window && window.top.document) {
         const topH1 = window.top.document.querySelector('h1');
@@ -130,7 +134,7 @@
   // Title is in the panel header (e.g., "Fairway Independent Mortgage Corporation - EVP, Enterprise Applications")
   if (source === 'AlphaSights') {
     // Try to get title from the panel header or the visible heading
-    if (!title) {
+    if (!title || isGenericTitle(title)) {
       // Look for headings that contain company + role pattern
       const headings = doc.querySelectorAll('h1, h2, h3, [class*="title"], [class*="header"]');
       for (const h of headings) {

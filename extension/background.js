@@ -420,6 +420,29 @@ const tabsSending = new Set();
 // Store metadata extracted from top frame, keyed by tabId
 const tabMetadata = new Map();
 
+function isGenericExpertTitle(value) {
+  const text = String(value || '').trim();
+  return !text || /^(AlphaSense|AlphaSights|Expert Interview|Interview Transcript|Transcript|Talk to this Transcript|Talk to this Expert)$/i.test(text);
+}
+
+function chooseExpertTitle(existing, incoming) {
+  const a = String(existing || '').trim();
+  const b = String(incoming || '').trim();
+  if (isGenericExpertTitle(a) && !isGenericExpertTitle(b)) return b;
+  return a || b;
+}
+
+function isLikelyExpertDate(value) {
+  const text = String(value || '').trim();
+  return /^(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{2,4}|\d{1,2}\/\d{1,2}\/\d{2,4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{1,2},?\s+\d{2,4})$/i.test(text);
+}
+
+function chooseExpertDate(existing, incoming) {
+  const a = String(existing || '').trim();
+  const b = String(incoming || '').trim();
+  if (!isLikelyExpertDate(a) && isLikelyExpertDate(b)) return b;
+  return a || b;
+}
 // Listen for messages from content scripts
 chrome.runtime.onMessage.addListener((message, sender) => {
   const tabId = sender.tab?.id;
@@ -434,11 +457,10 @@ chrome.runtime.onMessage.addListener((message, sender) => {
   if (message.type === 'expert-metadata') {
     const existing = tabMetadata.get(tabId) || {};
     const incoming = message.data;
-    // For each field, keep the first non-empty value found
     const merged = {
-      title: existing.title || incoming.title || '',
-      interviewDate: existing.interviewDate || incoming.interviewDate || '',
-      datePublished: existing.datePublished || incoming.datePublished || '',
+      title: chooseExpertTitle(existing.title, incoming.title),
+      interviewDate: chooseExpertDate(existing.interviewDate, incoming.interviewDate),
+      datePublished: chooseExpertDate(existing.datePublished, incoming.datePublished),
       expertPerspective: existing.expertPerspective || incoming.expertPerspective || '',
       analystPerspective: existing.analystPerspective || incoming.analystPerspective || '',
       primaryCompany: existing.primaryCompany || incoming.primaryCompany || '',
@@ -460,16 +482,15 @@ chrome.runtime.onMessage.addListener((message, sender) => {
     const meta = tabMetadata.get(tabId);
     if (meta) {
       const data = message.data;
-      // Top-frame metadata wins over iframe-extracted metadata for each field
-      if (meta.title && (!data.title || data.title === 'Expert Interview')) data.title = meta.title;
-      if (meta.interviewDate && !data.interviewDate) data.interviewDate = meta.interviewDate;
-      if (meta.datePublished && !data.datePublished) data.datePublished = meta.datePublished;
+      if (!isGenericExpertTitle(meta.title) && isGenericExpertTitle(data.title)) data.title = meta.title;
+      if (isLikelyExpertDate(meta.interviewDate) && !isLikelyExpertDate(data.interviewDate)) data.interviewDate = meta.interviewDate;
+      if (isLikelyExpertDate(meta.datePublished) && !isLikelyExpertDate(data.datePublished)) data.datePublished = meta.datePublished;
       if (meta.expertPerspective && !data.expertPerspective) data.expertPerspective = meta.expertPerspective;
       if (meta.analystPerspective && !data.analystPerspective) data.analystPerspective = meta.analystPerspective;
       if (meta.primaryCompany && !data.primaryCompany) data.primaryCompany = meta.primaryCompany;
-      // For dates specifically, always prefer top-frame metadata (it's more reliable)
-      if (meta.interviewDate) data.interviewDate = meta.interviewDate;
-      if (meta.datePublished) data.datePublished = meta.datePublished;
+      // For dates specifically, prefer valid top-frame metadata over invalid/generic iframe guesses.
+      if (isLikelyExpertDate(meta.interviewDate)) data.interviewDate = meta.interviewDate;
+      if (isLikelyExpertDate(meta.datePublished)) data.datePublished = meta.datePublished;
       tabMetadata.delete(tabId);
     }
     sendToServer(message.data, '/summarize-expert', tabId).finally(() => tabsSending.delete(tabId));
