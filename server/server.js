@@ -239,6 +239,10 @@ function marketStripHtml(snapshot) {
   return `<span class="market-strip" aria-label="Market snapshot">${parts.join('<span class="market-sep">|</span>')}</span>`;
 }
 
+function stripMarketSnapshotHtml(html) {
+  return String(html || '').replace(/<span class=["']market-strip["'][^>]*>[\s\S]*?<\/span>\s*<\/span>/gi, '');
+}
+
 function injectMarketSnapshot(html, snapshot) {
   const strip = marketStripHtml(snapshot);
   if (!strip || String(html || '').includes('class="market-strip"')) return html;
@@ -1002,7 +1006,6 @@ app.post('/summarize-expert', async (req, res) => {
     ? resolveCodexModel(req.body.codexModel || settings.codexModel)
     : (req.body.model || settings.model || 'opus');
   const initialMarketTicker = normalizeMarketTicker(primaryCompany);
-  const marketSnapshotPromise = initialMarketTicker ? fetchMarketSnapshot(initialMarketTicker) : null;
 
   if (!transcript || transcript.length < 200) {
     return res.status(400).json({ success: false, error: 'Missing or too short transcript text' });
@@ -1106,7 +1109,7 @@ app.post('/summarize-expert', async (req, res) => {
       }
 
       // Inject metadata into HTML head
-      let finalHtml = normalizeExpertHeaderHtml(html).replace('</head>', `<meta name="summarizer-verbosity" content="${verbosity}">\n<meta name="summarizer-model" content="${lockedTarget}">\n</head>`);
+      let finalHtml = stripMarketSnapshotHtml(normalizeExpertHeaderHtml(html)).replace('</head>', `<meta name="summarizer-verbosity" content="${verbosity}">\n<meta name="summarizer-model" content="${lockedTarget}">\n</head>`);
 
       const expertActionCss = `
   header.sticky .header-row {
@@ -1169,16 +1172,6 @@ app.post('/summarize-expert', async (req, res) => {
   }
 `;
       finalHtml = finalHtml.replace('</style>', `${expertActionCss}</style>`);
-      const finalMarketTicker = extractTickerFromHtml(finalHtml) || htmlTicker || initialMarketTicker;
-      let marketSnapshot = null;
-      if (finalMarketTicker && finalMarketTicker === initialMarketTicker && marketSnapshotPromise) {
-        marketSnapshot = await marketSnapshotPromise;
-      } else if (finalMarketTicker) {
-        marketSnapshot = await fetchMarketSnapshot(finalMarketTicker);
-      } else if (marketSnapshotPromise) {
-        marketSnapshot = await marketSnapshotPromise;
-      }
-      finalHtml = injectMarketSnapshot(finalHtml, marketSnapshot);
 
       // Inject bookmark data attributes server-side — strip any Claude-generated data-* attrs first to avoid duplicates
       finalHtml = finalHtml.replace(/(<(?:button|a)[^>]*id="bookmark-btn")[^>]*>/, (match, prefix) => {
@@ -1396,7 +1389,7 @@ app.post('/summarize-youtube', async (req, res) => {
         filename,
         inlineCss: readStyleCss(),
       };
-      const finalHtml = yt.renderYouTubeOutput(meta, trimmed);
+      const finalHtml = stripMarketSnapshotHtml(yt.renderYouTubeOutput(meta, trimmed));
       fs.writeFileSync(outputPath, finalHtml, 'utf-8');
 
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
