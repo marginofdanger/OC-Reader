@@ -89,6 +89,16 @@ body {
   padding: 0.6rem 1.5rem 3rem;
 }
 
+/* Fallback for model output that closes .content before Q&A. */
+body > h2[id="qa"],
+body > .qa-block {
+  max-width: 90ch;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
 h2 {
   font-size: 1.1rem;
   color: #3d3225;

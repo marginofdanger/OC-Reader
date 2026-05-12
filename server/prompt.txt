@@ -49,7 +49,7 @@ so any deviation will render unstyled.
      }
      </script>
 
-2. Main content wrapper — wrap everything below the header in <div class="content">...</div>.
+2. Main content wrapper — wrap everything below the header in <div class="content">...</div>. Do not close this wrapper until AFTER the Q&A section and all qa-blocks are complete.
 
 3. "Prepared Remarks" section — <h2>Prepared Remarks</h2>:
    - Each speaker: <h3>Speaker Name <span class="role">— Title</span></h3>
