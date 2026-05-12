@@ -89,15 +89,6 @@ body {
   padding: 0.6rem 1.5rem 3rem;
 }
 
-/* Fallback for model output that closes .content before Q&A. */
-body > h2[id="qa"],
-body > .qa-block {
-  max-width: 90ch;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
-}
 
 h2 {
   font-size: 1.1rem;
@@ -175,5 +166,16 @@ tbody tr:nth-child(even) { background: #f0ebe3; }
 }
 .answer { padding: 0 0.25rem; }
 .answer ul { margin-top: 0.25rem; }
+
+/* Fallback for model output that closes .content before Q&A. */
+body > h2[id="qa"],
+body > .qa-block {
+  width: min(90ch, 100%);
+  max-width: 90ch;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
 
 strong { color: #2c2418; }
