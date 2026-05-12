@@ -537,6 +537,45 @@ function stripModelHtmlWrapper(html) {
   return cleaned;
 }
 
+function findMatchingDivClose(html, openIndex) {
+  const tagRe = /<\/?div\b[^>]*>/gi;
+  tagRe.lastIndex = openIndex;
+  let depth = 0;
+  let match;
+  while ((match = tagRe.exec(html))) {
+    if (/^<div\b/i.test(match[0])) depth++;
+    else depth--;
+    if (depth === 0) return match.index;
+  }
+  return -1;
+}
+
+function repairEscapedEarningsQa(html) {
+  const source = String(html || '');
+  const contentRe = /<div\s+class=["'][^"']*\bcontent\b[^"']*["'][^>]*>/i;
+  const qaRe = /<h2\b[^>]*\bid=["']qa["'][^>]*>/i;
+  const contentMatch = contentRe.exec(source);
+  const qaMatch = qaRe.exec(source);
+  if (!contentMatch || !qaMatch || qaMatch.index < contentMatch.index) return source;
+
+  const closeIndex = findMatchingDivClose(source, contentMatch.index);
+  if (closeIndex < 0 || closeIndex > qaMatch.index) return source;
+
+  const closeTag = source.slice(closeIndex).match(/^<\/div\s*>/i);
+  if (!closeTag) return source;
+
+  let repaired = source.slice(0, closeIndex) + source.slice(closeIndex + closeTag[0].length);
+  const searchStart = Math.max(0, qaMatch.index - closeTag[0].length);
+  const tail = repaired.slice(searchStart);
+  const scriptOffset = tail.search(/<script\b/i);
+  const bodyOffset = tail.search(/<\/body\s*>/i);
+  const htmlOffset = tail.search(/<\/html\s*>/i);
+  const offsets = [scriptOffset, bodyOffset, htmlOffset].filter(i => i >= 0);
+  if (!offsets.length) return repaired + '\n</div>\n';
+  const insertIndex = searchStart + Math.min(...offsets);
+  return repaired.slice(0, insertIndex).trimEnd() + '\n</div>\n' + repaired.slice(insertIndex);
+}
+
 async function saveEarningsHtmlOutput(html, opts) {
   html = stripModelHtmlWrapper(html);
   if (!html || (!html.includes('<!DOCTYPE') && !html.includes('<html'))) {
@@ -556,6 +595,7 @@ async function saveEarningsHtmlOutput(html, opts) {
 
   let finalHtml = html.replace(/<style[^>]*>[\s\S]*?<\/style>\s*/gi, '');
   finalHtml = finalHtml.replace(/<link\b[^>]*rel=["']stylesheet["'][^>]*>\s*/gi, '');
+  finalHtml = repairEscapedEarningsQa(finalHtml);
   finalHtml = finalHtml.replace('</head>', '<link rel="stylesheet" href="/earnings-style.css">\n</head>');
   finalHtml = finalHtml.replace('</head>', `<meta name="summarizer-verbosity" content="${opts.verbosity}">\n<meta name="summarizer-model" content="${opts.target}">\n</head>`);
   finalHtml = injectMarketSnapshot(finalHtml, await fetchMarketSnapshot(extractTickerFromHtml(finalHtml)));
@@ -867,6 +907,7 @@ app.post('/summarize', async (req, res) => {
       // stylesheet so every summary shares one editable CSS file.
       let finalHtml = html.replace(/<style[^>]*>[\s\S]*?<\/style>\s*/gi, '');
       finalHtml = finalHtml.replace(/<link\b[^>]*rel=["']stylesheet["'][^>]*>\s*/gi, '');
+      finalHtml = repairEscapedEarningsQa(finalHtml);
       finalHtml = finalHtml.replace('</head>', '<link rel="stylesheet" href="/earnings-style.css">\n</head>');
 
       // Inject metadata into HTML head
