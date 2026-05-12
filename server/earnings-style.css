@@ -168,14 +168,7 @@ tbody tr:nth-child(even) { background: #f0ebe3; }
 .answer ul { margin-top: 0.25rem; }
 
 /* Fallback for model output that closes .content before Q&A. */
-body > h2[id="qa"] {
-  width: min(66ch, 100%);
-  max-width: 66ch;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
-}
+body > h2[id="qa"],
 body > .qa-block {
   width: min(90ch, 100%);
   max-width: 90ch;
