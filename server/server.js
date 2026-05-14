@@ -3,6 +3,7 @@ const { spawn, exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const yt = require('./youtube-helpers');
+const { sanitizeLeakedMarkdownTables } = require('./html-sanitizers');
 
 const app = express();
 app.use(express.json({ limit: '5mb' }));
@@ -596,6 +597,7 @@ async function saveEarningsHtmlOutput(html, opts) {
   let finalHtml = html.replace(/<style[^>]*>[\s\S]*?<\/style>\s*/gi, '');
   finalHtml = finalHtml.replace(/<link\b[^>]*rel=["']stylesheet["'][^>]*>\s*/gi, '');
   finalHtml = repairEscapedEarningsQa(finalHtml);
+  finalHtml = sanitizeLeakedMarkdownTables(finalHtml);
   finalHtml = finalHtml.replace('</head>', '<link rel="stylesheet" href="/earnings-style.css">\n</head>');
   finalHtml = finalHtml.replace('</head>', `<meta name="summarizer-verbosity" content="${opts.verbosity}">\n<meta name="summarizer-model" content="${opts.target}">\n</head>`);
   finalHtml = injectMarketSnapshot(finalHtml, await fetchMarketSnapshot(extractTickerFromHtml(finalHtml)));
@@ -908,6 +910,7 @@ app.post('/summarize', async (req, res) => {
       let finalHtml = html.replace(/<style[^>]*>[\s\S]*?<\/style>\s*/gi, '');
       finalHtml = finalHtml.replace(/<link\b[^>]*rel=["']stylesheet["'][^>]*>\s*/gi, '');
       finalHtml = repairEscapedEarningsQa(finalHtml);
+      finalHtml = sanitizeLeakedMarkdownTables(finalHtml);
       finalHtml = finalHtml.replace('</head>', '<link rel="stylesheet" href="/earnings-style.css">\n</head>');
 
       // Inject metadata into HTML head
@@ -1150,7 +1153,9 @@ app.post('/summarize-expert', async (req, res) => {
       }
 
       // Inject metadata into HTML head
-      let finalHtml = stripMarketSnapshotHtml(normalizeExpertHeaderHtml(html)).replace('</head>', `<meta name="summarizer-verbosity" content="${verbosity}">\n<meta name="summarizer-model" content="${lockedTarget}">\n</head>`);
+      let finalHtml = stripMarketSnapshotHtml(normalizeExpertHeaderHtml(html));
+      finalHtml = sanitizeLeakedMarkdownTables(finalHtml);
+      finalHtml = finalHtml.replace('</head>', `<meta name="summarizer-verbosity" content="${verbosity}">\n<meta name="summarizer-model" content="${lockedTarget}">\n</head>`);
 
       const expertActionCss = `
   header.sticky .header-row {
@@ -1430,7 +1435,7 @@ app.post('/summarize-youtube', async (req, res) => {
         filename,
         inlineCss: readStyleCss(),
       };
-      const finalHtml = stripMarketSnapshotHtml(yt.renderYouTubeOutput(meta, trimmed));
+      const finalHtml = stripMarketSnapshotHtml(yt.renderYouTubeOutput(meta, sanitizeLeakedMarkdownTables(trimmed)));
       fs.writeFileSync(outputPath, finalHtml, 'utf-8');
 
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -1575,8 +1580,6 @@ app.post('/settings', (req, res) => {
 app.listen(PORT, () => {
   log(`OC-Reader server running at http://localhost:${PORT} (EC/expert: ${settings.provider}, YouTube: ${settings.youtubeProvider}, concurrency: ${maxConcurrency})`);
 });
-
-
 
 
 

@@ -22,6 +22,7 @@ TABLE DISCIPLINE:
 - Do NOT create Q&A tables for qualitative answers, binary status answers, dependency lists, regulatory-process answers, strategic rationales, timing commentary, or 1-2 numbers that fit cleanly inside bullets.
 - Avoid "Topic | Detail" and "Item | Status" tables in Q&A; those are usually bullets pretending to be a table.
 - Table headers should be terse: Metric | Value | YoY | Notes, or Segment | Growth | Driver | Notes.
+- When using a table, emit real HTML <table>, <thead>, <tbody>, <tr>, <th>, and <td> tags. Never emit Markdown pipe tables.
 - Never create empty/dash placeholder columns. Shape each table around available data.
 
 Q&A STYLE:
